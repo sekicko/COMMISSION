@@ -58,19 +58,17 @@ The Vite development proxy forwards `/auth` and `/api` to the server.
 
 Import the repository into Vercel and set the project **Root Directory** to `commission-site`. The included `vercel.json` uses `npm run build`, publishes `dist`, and rewrites `/auth/*` to the OAuth serverless functions under `/api/auth/*`.
 
-Add a Redis integration from the Vercel Marketplace (Upstash Redis), then configure these production environment variables in Vercel:
+Configure these production environment variables in Vercel:
 
 ```env
 DERIV_APP_ID=your_registered_deriv_application_id
 DERIV_REDIRECT_URI=https://your-project.vercel.app/auth/callback
-UPSTASH_REDIS_REST_URL=https://your-upstash-redis-url
-UPSTASH_REDIS_REST_TOKEN=your-upstash-redis-rest-token
 NODE_ENV=production
 ```
 
 Register the exact `DERIV_REDIRECT_URI` in the Deriv developer dashboard. Do not commit `.env` or real credentials. Vercel injects these variables into serverless functions; they are not `VITE_` frontend variables.
 
-The Redis integration is required for reliable OAuth state and session storage across Vercel function instances. Without it, the local in-memory fallback is not suitable for production.
+OAuth state and tokens are encrypted into HTTP-only cookies, so this deployment does not require Redis. This is a stateless Vercel-compatible session design; frontend JavaScript cannot read the cookies.
 
 ## Local production
 
