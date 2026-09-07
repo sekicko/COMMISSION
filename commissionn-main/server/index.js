@@ -6,11 +6,17 @@ import { getApplicationList, getMarkupStatistics } from './markupApi.js'
 const app = express()
 const port = Number(process.env.PORT || 8787)
 const clientId = process.env.DERIV_APP_ID || process.env.REACT_APP_DERIV_APP_ID
-const redirectUri = process.env.DERIV_REDIRECT_URI || `http://localhost:${port}/oauth/callback`
+const getRedirectUri = () => {
+  if (process.env.DERIV_REDIRECT_URI) return process.env.DERIV_REDIRECT_URI
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/oauth/callback`
+  if (process.env.VERCEL_BRANCH_URL) return `https://${process.env.VERCEL_BRANCH_URL}/oauth/callback`
+  return `http://localhost:${port}/oauth/callback`
+}
+const redirectUri = getRedirectUri()
 const cookieName = 'commission_main_session'
 const oauthCookie = 'commission_main_oauth'
 
-const key = () => crypto.createHash('sha256').update(`${clientId}:${redirectUri}:commission-main`).digest()
+const key = () => crypto.createHash('sha256').update(`${clientId || 'missing_app_id'}:${redirectUri}:commission-main`).digest()
 const seal = (value) => {
   const iv = crypto.randomBytes(12)
   const cipher = crypto.createCipheriv('aes-256-gcm', key(), iv)
@@ -28,7 +34,7 @@ const open = (value) => {
 const getCookie = (request, name) => request.headers.cookie?.split(';').map((part) => part.trim().split('=')).find(([key]) => key === name)?.[1]
 const setCookie = (name, value, maxAge = 3600) => `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}`
 const error = (response, status, message) => response.status(status).json({ error: message })
-const requireConfig = () => { if (!clientId) throw new Error('DERIV_APP_ID is not configured.') }
+const requireConfig = () => { if (!clientId) throw new Error('DERIV_APP_ID is missing. Add the registered Deriv app ID in Vercel env vars.') }
 const getSession = (request) => open(decodeURIComponent(getCookie(request, cookieName) || ''))
 
 app.get(['/auth/login', '/api/auth/login'], (request, response) => {
@@ -38,13 +44,14 @@ app.get(['/auth/login', '/api/auth/login'], (request, response) => {
     const { verifier, challenge } = createPkcePair()
     response.setHeader('Set-Cookie', setCookie(oauthCookie, seal({ state, verifier, createdAt: Date.now() }), 600))
     response.redirect(getAuthorizationUrl({ clientId, redirectUri, state, challenge }))
-  } catch (requestError) { error(response, 500, requestError.message) }
+  } catch (requestError) { response.redirect(`/?auth_error=${encodeURIComponent(requestError.message)}`) }
 })
 
 app.get(['/auth/callback', '/api/auth/callback', '/oauth/callback'], async (request, response) => {
   try {
     const { code, state, error: authError, error_description: description } = request.query
     if (authError) return response.redirect(`/?auth_error=${encodeURIComponent(description || authError)}`)
+    requireConfig()
     const pending = open(decodeURIComponent(getCookie(request, oauthCookie) || ''))
     if (!code || !state || !pending || pending.state !== state || Date.now() - pending.createdAt > 600000) return response.redirect('/?auth_error=Invalid%20or%20expired%20OAuth%20state.')
     const token = await exchangeCode({ code, clientId, redirectUri, verifier: pending.verifier })
