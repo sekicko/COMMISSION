@@ -27,6 +27,8 @@ export default function AllApps() {
       // Get app list for the authorized account, including zero-markup apps
       const appListRes = await getAppList();
       const appList = appListRes.app_list || [];
+      console.log('Authorized account app_list response:', appListRes);
+      console.log('Authorized apps count:', appList.length);
 
       // Get commission breakdown for all apps
       const thisMonthFrom = dayjs().startOf('month').format('YYYY-MM-DD HH:mm:ss');
@@ -36,9 +38,13 @@ export default function AllApps() {
 
       const thisMonthRes = await getCommission(thisMonthFrom, thisMonthTo);
       const thisMonthBreakdown = thisMonthRes.app_markup_statistics?.breakdown || [];
+      console.log('This month markup response:', thisMonthRes);
+      console.log('This month markup breakdown count:', thisMonthBreakdown.length);
 
       const lastMonthRes = await getCommission(lastMonthFrom, lastMonthTo);
       const lastMonthBreakdown = lastMonthRes.app_markup_statistics?.breakdown || [];
+      console.log('Last month markup response:', lastMonthRes);
+      console.log('Last month markup breakdown count:', lastMonthBreakdown.length);
 
       const stats = {};
       let totalRev = 0;
@@ -111,8 +117,13 @@ export default function AllApps() {
       setAppStats(stats);
       setTotalRevenue(totalRev);
       setTopPerformer(topApp);
+
+      console.log('Normalized app stats:', stats);
+      console.log('Total revenue summary:', totalRev);
+      console.log('Top performer:', topApp);
     } catch (err) {
       console.error('Error loading apps:', err);
+      console.error('Fatal app listing failure:', err?.message || err);
     }
     
     setLoading(false);
