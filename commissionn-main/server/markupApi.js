@@ -4,7 +4,7 @@ const configuredAppId = (process.env.DERIV_API_APP_ID || process.env.DERIV_APP_I
 const appId = /^\d+$/.test(configuredAppId) ? configuredAppId : '1089'
 const socketUrl = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`
 
-const request = (socket, payload, requestId) => new Promise((resolve, reject) => {
+const request = (socket, payload) => new Promise((resolve, reject) => {
   let settled = false
   const finish = (callback, value) => {
     if (settled) return
@@ -18,7 +18,6 @@ const request = (socket, payload, requestId) => new Promise((resolve, reject) =>
   const onMessage = (message) => {
     let response
     try { response = JSON.parse(message.toString()) } catch { return }
-    if (response.req_id !== requestId) return
     if (response.error) finish(reject, new Error(response.error.message || 'Deriv API request failed.'))
     else finish(resolve, response)
   }
@@ -39,8 +38,8 @@ const call = async (accessToken, payload) => {
       socket.once('error', reject)
       socket.once('unexpected-response', (_request, response) => reject(new Error(`Deriv WebSocket rejected the app ID with HTTP ${response.statusCode}. Check DERIV_APP_ID in Vercel.`)))
     })
-    await request(socket, { authorize: accessToken, req_id: 1 }, 1)
-    const response = await request(socket, { ...payload, req_id: 2 }, 2)
+    await request(socket, { authorize: accessToken })
+    const response = await request(socket, payload)
     return response
   } finally {
     socket.close()
