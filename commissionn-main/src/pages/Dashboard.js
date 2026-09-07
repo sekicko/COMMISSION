@@ -17,6 +17,10 @@ export default function Dashboard({ onLogout }) {
   const [lastMonthTxns, setLastMonthTxns] = useState(0);
   const [custom, setCustom] = useState(null);
   const [customTxns, setCustomTxns] = useState(0);
+  const [selectedRange, setSelectedRange] = useState({
+    from: dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+    to: dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss')
+  });
 
   const [chartData, setChartData] = useState([]);
   const [chartTitle, setChartTitle] = useState('Monthly Commission Distribution');
@@ -93,6 +97,15 @@ export default function Dashboard({ onLogout }) {
 
   const loadDefaultCards = async () => {
     try {
+      const rangeFrom = selectedRange.from;
+      const rangeTo = selectedRange.to;
+
+      const rangeRes = await getCommission(rangeFrom, rangeTo);
+      const rangeBreakdown = rangeRes.app_markup_statistics?.breakdown || [];
+      const rangeData = getAppData(rangeBreakdown, selectedAppId);
+      setCustom(rangeRes.app_markup_statistics?.total_app_markup_usd || 0);
+      setCustomTxns(rangeRes.app_markup_statistics?.total_transactions_count || 0);
+
       // TODAY
       const todayFrom = dayjs().startOf('day').format('YYYY-MM-DD HH:mm:ss');
       const todayTo = dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss');
@@ -119,6 +132,10 @@ export default function Dashboard({ onLogout }) {
       const lastData = getAppData(lastBreakdown, selectedAppId);
       setLastMonth(lastData.commission);
       setLastMonthTxns(lastData.transactions);
+
+      if (selectedAppId) {
+        setCustom(rangeData.commission);
+      }
     } catch (error) {
       console.error('Error loading commission cards:', error);
     }
@@ -224,6 +241,7 @@ export default function Dashboard({ onLogout }) {
 
   const checkCustom = async (from, to) => {
     try {
+      setSelectedRange({ from, to });
       const res = await getCommission(from, to);
       setCustom(res.app_markup_statistics?.total_app_markup_usd || 0);
       setCustomTxns(res.app_markup_statistics?.total_transactions_count || 0);

@@ -13,8 +13,7 @@ export const connectDeriv = async () => {
 
 export const getCommission = (dateFrom, dateTo) => request(`/api/markup/statistics?start_date=${encodeURIComponent(dateFrom.slice(0, 10))}&end_date=${encodeURIComponent(dateTo.slice(0, 10))}`)
 export const getAppList = async () => {
-  const date = new Date().toISOString().slice(0, 10)
-  const response = await request(`/api/markup/statistics?start_date=${date}&end_date=${date}`)
+  const response = await request('/api/markup/apps')
   return { app_list: response.app_list || [] }
 }
 export const getAppDetails = () => Promise.reject(new Error('Application details are not available in the current OAuth markup API.'))

@@ -24,7 +24,7 @@ export default function AllApps() {
     setLoading(true);
     
     try {
-      // Get app list
+      // Get app list for the authorized account, including zero-markup apps
       const appListRes = await getAppList();
       const appList = appListRes.app_list || [];
 
@@ -34,11 +34,9 @@ export default function AllApps() {
       const lastMonthFrom = dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD HH:mm:ss');
       const lastMonthTo = dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD HH:mm:ss');
 
-      // Get this month's breakdown
       const thisMonthRes = await getCommission(thisMonthFrom, thisMonthTo);
       const thisMonthBreakdown = thisMonthRes.app_markup_statistics?.breakdown || [];
-      
-      // Get last month's breakdown
+
       const lastMonthRes = await getCommission(lastMonthFrom, lastMonthTo);
       const lastMonthBreakdown = lastMonthRes.app_markup_statistics?.breakdown || [];
 
@@ -46,17 +44,31 @@ export default function AllApps() {
       let totalRev = 0;
       let topApp = { id: '', amount: 0 };
 
-      // Process this month breakdown
+      appList.forEach(app => {
+        const appId = app.app_id;
+        stats[appId] = {
+          thisMonth: 0,
+          lastMonth: 0,
+          transactions: 0,
+          sharePercent: 0
+        };
+      });
+
       thisMonthBreakdown.forEach(item => {
         const appId = item.app_id;
         const commission = item.app_markup_usd || 0;
-        
-        stats[appId] = {
-          thisMonth: commission,
-          lastMonth: 0,
-          transactions: item.transactions_count || 0,
-          sharePercent: 0
-        };
+
+        if (!stats[appId]) {
+          stats[appId] = {
+            thisMonth: commission,
+            lastMonth: 0,
+            transactions: item.transactions_count || 0,
+            sharePercent: 0
+          };
+        } else {
+          stats[appId].thisMonth = commission;
+          stats[appId].transactions = item.transactions_count || 0;
+        }
 
         totalRev += commission;
 
@@ -65,43 +77,36 @@ export default function AllApps() {
         }
       });
 
-      // Add last month's data
       lastMonthBreakdown.forEach(item => {
         const appId = item.app_id;
         const commission = item.app_markup_usd || 0;
-        
-        if (stats[appId]) {
-          stats[appId].lastMonth = commission;
-        } else {
-          // Only include if has data in last month
+
+        if (!stats[appId]) {
           stats[appId] = {
             thisMonth: 0,
             lastMonth: commission,
             transactions: item.transactions_count || 0,
             sharePercent: 0
           };
-          totalRev += commission;
+        } else {
+          stats[appId].lastMonth = commission;
         }
       });
 
-      // Filter out apps with no data in either month
-      const appsWithData = appList.filter(app => stats[app.app_id]);
-      
-      // Calculate share percentages
       Object.keys(stats).forEach(appId => {
+        const appStats = stats[appId];
         if (totalRev > 0) {
-          stats[appId].sharePercent = ((stats[appId].thisMonth / totalRev) * 100).toFixed(2);
+          appStats.sharePercent = ((appStats.thisMonth / totalRev) * 100).toFixed(2);
         }
       });
 
-      // Count active apps (those with commission this month)
-      const activeCount = appsWithData.filter(app => {
+      const activeCount = appList.filter(app => {
         const appStats = stats[app.app_id];
         return appStats && appStats.thisMonth > 0;
       }).length;
 
-      setApps(appsWithData);
-      setTotalApps(appsWithData.length);
+      setApps(appList);
+      setTotalApps(appList.length);
       setActiveApps(activeCount);
       setAppStats(stats);
       setTotalRevenue(totalRev);

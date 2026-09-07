@@ -55,4 +55,14 @@ export const callback = async (request, response) => {
 }
 export const authSession = (request, response) => response.json({ authenticated: Boolean(session(request)) })
 export const logout = (response) => { response.setHeader('Set-Cookie', cookie(sessionName, '', 0)); response.status(204).end() }
+export const appList = async (request, response) => {
+  const token = session(request)?.access_token
+  if (!token) return response.status(401).json({ error: 'Please sign in with Deriv first.' })
+  try {
+    const apps = await getApplicationList({ accessToken: token })
+    response.json({ app_list: apps.app_list || [] })
+  } catch (error) {
+    response.status(502).json({ error: error.message })
+  }
+}
 export const markup = async (request, response) => { const token = session(request)?.access_token; if (!token) return response.status(401).json({ error: 'Please sign in with Deriv first.' }); const { start_date: startDate, end_date: endDate } = request.query; try { const [stats, apps] = await Promise.all([getMarkupStatistics({ accessToken: token, dateFrom: `${startDate} 00:00:00`, dateTo: `${endDate} 23:59:59` }), getApplicationList({ accessToken: token })]); response.json({ ...stats, app_list: apps.app_list || [] }) } catch (error) { response.status(502).json({ error: error.message }) } }
