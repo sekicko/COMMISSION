@@ -24,7 +24,11 @@ const config = () => {
   if (!redirectUri) throw new Error('DERIV_REDIRECT_URI is missing. Add the exact callback URL in Vercel env vars.')
   return { clientId: process.env.DERIV_APP_ID, redirectUri }
 }
-const cookie = (name, value, age = 3600) => `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${age}; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}`
+const cookie = (name, value, age = 3600) => {
+  const base = `${name}=${encodeURIComponent(value)}; HttpOnly; Path=/; Max-Age=${age};`
+  if (process.env.NODE_ENV === 'production') return `${base} SameSite=None; Secure;`
+  return `${base} SameSite=Lax;`
+}
 const getCookie = (request, name) => { const value = request.headers.cookie?.split(';').map((part) => part.trim().split('=')).find(([key]) => key === name)?.[1]; return value ? decodeURIComponent(value) : '' }
 const session = (request) => open(getCookie(request, sessionName))
 export const login = (response) => {
