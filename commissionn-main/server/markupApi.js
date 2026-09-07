@@ -1,10 +1,10 @@
 import WebSocket from 'ws'
 
-const configuredAppId = (process.env.DERIV_API_APP_ID || process.env.DERIV_APP_ID || process.env.REACT_APP_DERIV_APP_ID || '').trim()
-const appId = /^\d+$/.test(configuredAppId) ? configuredAppId : '1089'
+const webSocketAppId = (process.env.DERIV_API_APP_ID || process.env.DERIV_WS_APP_ID || '1089').trim()
+const appId = /^\d+$/.test(webSocketAppId) ? webSocketAppId : '1089'
 const socketUrl = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`
 
-const request = (socket, payload) => new Promise((resolve, reject) => {
+const request = (socket, payload, operation) => new Promise((resolve, reject) => {
   let settled = false
   const finish = (callback, value) => {
     if (settled) return
@@ -23,7 +23,7 @@ const request = (socket, payload) => new Promise((resolve, reject) => {
   }
   const onClose = () => finish(reject, new Error('Deriv WebSocket closed before returning a response.'))
   const onError = (error) => finish(reject, error)
-  const timeout = setTimeout(() => finish(reject, new Error('Deriv API request timed out.')), 15000)
+  const timeout = setTimeout(() => finish(reject, new Error(`Deriv ${operation} request timed out using WebSocket app ID ${appId}.`)), 15000)
   socket.on('message', onMessage)
   socket.once('close', onClose)
   socket.once('error', onError)
@@ -38,8 +38,9 @@ const call = async (accessToken, payload) => {
       socket.once('error', reject)
       socket.once('unexpected-response', (_request, response) => reject(new Error(`Deriv WebSocket rejected the app ID with HTTP ${response.statusCode}. Check DERIV_APP_ID in Vercel.`)))
     })
-    await request(socket, { authorize: accessToken })
-    const response = await request(socket, payload)
+    await request(socket, { authorize: accessToken }, 'authorize')
+    const operation = payload.app_list ? 'app_list' : 'app_markup_statistics'
+    const response = await request(socket, payload, operation)
     return response
   } finally {
     socket.close()
