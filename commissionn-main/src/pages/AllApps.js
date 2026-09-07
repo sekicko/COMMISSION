@@ -7,6 +7,7 @@ export default function AllApps() {
   const [apps, setApps] = useState([]);
   const [appStats, setAppStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('commission'); // commission, lastMonth, id
   
@@ -22,6 +23,7 @@ export default function AllApps() {
 
   const loadAllApps = async () => {
     setLoading(true);
+    setLoadError('');
     
     try {
       // Get app list for the authorized account, including zero-markup apps
@@ -124,9 +126,10 @@ export default function AllApps() {
     } catch (err) {
       console.error('Error loading apps:', err);
       console.error('Fatal app listing failure:', err?.message || err);
+      setLoadError(err?.message || 'Unable to load applications from Deriv.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const formatNumber = (num) => {
@@ -170,6 +173,16 @@ export default function AllApps() {
       <div className="all-apps-loading">
         <div className="spinner"></div>
         <p>Loading all applications...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="all-apps-loading">
+        <p>Unable to load applications.</p>
+        <p>{loadError}</p>
+        <button type="button" onClick={loadAllApps}>Try again</button>
       </div>
     );
   }
