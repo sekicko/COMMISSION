@@ -58,7 +58,8 @@ export const completeLogin = async (request, response) => {
   if (!code || !state || !oauthState || oauthState.state !== state || Date.now() - oauthState.createdAt > 600000) return response.redirect('/?auth_error=Invalid%20or%20expired%20OAuth%20state.')
 
   const token = await exchangeCode({ ...getConfig(), code, codeVerifier: oauthState.codeVerifier })
-  response.setHeader('Set-Cookie', [sessionCookie(encrypt(token)), cookie(oauthCookieName, '', 0)])
+  response.setHeader('Set-Cookie', sessionCookie(encrypt(token)))
+  response.setHeader('Cache-Control', 'no-store')
   response.redirect('/')
 }
 
