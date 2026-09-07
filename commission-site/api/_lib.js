@@ -31,7 +31,11 @@ export const getConfig = () => {
   return { clientId: process.env.DERIV_APP_ID, redirectUri: process.env.DERIV_REDIRECT_URI }
 }
 
-export const getCookie = (request, name) => request.headers.cookie?.split(';').map((part) => part.trim().split('=')).find(([key]) => key === name)?.[1]
+export const getCookie = (request, name) => {
+  const value = request.headers.cookie?.split(';').map((part) => part.trim().split('='))
+    .find(([key]) => key === name)?.[1]
+  return value ? decodeURIComponent(value) : undefined
+}
 export const sessionCookie = (id, maxAge = 3600) => `${cookieName}=${encodeURIComponent(id)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}`
 export const errorResponse = (response, status, message) => response.status(status).json({ error: message })
 
