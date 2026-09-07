@@ -1,7 +1,6 @@
 import WebSocket from 'ws'
 
-const webSocketAppId = (process.env.DERIV_API_APP_ID || process.env.DERIV_WS_APP_ID || '1089').trim()
-const appId = /^\d+$/.test(webSocketAppId) ? webSocketAppId : '1089'
+const appId = (process.env.DERIV_APP_ID || '').trim()
 const socketUrl = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`
 
 const request = (socket, payload, operation) => new Promise((resolve, reject) => {
