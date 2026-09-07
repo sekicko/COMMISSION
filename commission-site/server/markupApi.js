@@ -46,3 +46,31 @@ export const getMarkupStatistics = ({ accessToken, dateFrom, dateTo }) => new Pr
     reject(error)
   })
 })
+
+export const getApplicationList = ({ accessToken }) => new Promise((resolve, reject) => {
+  const socket = new WebSocket(WS_URL)
+  const requestId = 1
+  const close = () => socket.close()
+  const timeout = setTimeout(() => {
+    close()
+    reject(new Error('Deriv application list request timed out.'))
+  }, 15000)
+
+  socket.once('open', async () => {
+    try {
+      await request(socket, { authorize: accessToken, req_id: requestId }, requestId)
+      const response = await request(socket, { app_list: 1, req_id: requestId + 1 }, requestId + 1)
+      clearTimeout(timeout)
+      close()
+      resolve(response.app_list || [])
+    } catch (error) {
+      clearTimeout(timeout)
+      close()
+      reject(error)
+    }
+  })
+  socket.once('error', (error) => {
+    clearTimeout(timeout)
+    reject(error)
+  })
+})

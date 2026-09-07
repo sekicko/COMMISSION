@@ -50,8 +50,15 @@ app.get('/auth/callback', async (request, response) => {
 })
 
 app.get('/auth/session', (request, response) => response.json({ authenticated: Boolean(getSession(request)) }))
+app.get('/api/auth/session', (request, response) => response.json({ authenticated: Boolean(getSession(request)) }))
 
 app.post('/auth/logout', (request, response) => {
+  const cookies = parseCookies(request.headers.cookie)
+  sessions.delete(cookies[cookieName])
+  response.setHeader('Set-Cookie', `${cookieName}=; Max-Age=0; ${cookieOptions}`)
+  response.status(204).end()
+})
+app.post('/api/auth/logout', (request, response) => {
   const cookies = parseCookies(request.headers.cookie)
   sessions.delete(cookies[cookieName])
   response.setHeader('Set-Cookie', `${cookieName}=; Max-Age=0; ${cookieOptions}`)

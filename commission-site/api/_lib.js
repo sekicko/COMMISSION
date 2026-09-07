@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis'
 import { createOpaqueValue, createPkcePair, exchangeCode, getAuthorizationUrl } from '../server/oauth.js'
-import { getMarkupStatistics } from '../server/markupApi.js'
+import { getApplicationList, getMarkupStatistics } from '../server/markupApi.js'
 
 const cookieName = 'commission_session'
 const statePrefix = 'commission:oauth:'
@@ -79,7 +79,11 @@ export const getMarkup = async (request, response) => {
   const { start_date: startDate, end_date: endDate } = request.query
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || startDate > endDate) return errorResponse(response, 400, 'Choose a valid date range.')
   try {
-    const payload = await getMarkupStatistics({ accessToken: session.access_token, dateFrom: `${startDate} 00:00:00`, dateTo: `${endDate} 23:59:59` })
-    response.json(payload)
+    const [markupResult, applicationsResult] = await Promise.allSettled([
+      getMarkupStatistics({ accessToken: session.access_token, dateFrom: `${startDate} 00:00:00`, dateTo: `${endDate} 23:59:59` }),
+      getApplicationList({ accessToken: session.access_token }),
+    ])
+    if (markupResult.status === 'rejected') throw markupResult.reason
+    response.json({ ...markupResult.value, app_list: applicationsResult.status === 'fulfilled' ? applicationsResult.value : [] })
   } catch (error) { errorResponse(response, 502, error.message || 'Unable to reach Deriv markup statistics.') }
 }
