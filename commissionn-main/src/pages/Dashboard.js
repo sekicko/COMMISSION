@@ -103,6 +103,8 @@ export default function Dashboard({ onLogout }) {
       const rangeRes = await getCommission(rangeFrom, rangeTo);
       const rangeBreakdown = rangeRes.app_markup_statistics?.breakdown || [];
       const rangeData = getAppData(rangeBreakdown, selectedAppId);
+      console.log('Selected range stats response:', rangeRes);
+      console.log('Selected range breakdown count:', rangeBreakdown.length);
       setCustom(rangeRes.app_markup_statistics?.total_app_markup_usd || 0);
       setCustomTxns(rangeRes.app_markup_statistics?.total_transactions_count || 0);
 
@@ -111,6 +113,7 @@ export default function Dashboard({ onLogout }) {
       const todayTo = dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss');
       const todayRes = await getCommission(todayFrom, todayTo);
       const todayBreakdown = todayRes.app_markup_statistics?.breakdown || [];
+      console.log('Today stats response:', todayRes);
       const todayData = getAppData(todayBreakdown, selectedAppId);
       setToday(todayData.commission);
       setTodayTxns(todayData.transactions);
@@ -120,6 +123,7 @@ export default function Dashboard({ onLogout }) {
       const monthTo = dayjs().endOf('month').format('YYYY-MM-DD HH:mm:ss');
       const monthRes = await getCommission(monthFrom, monthTo);
       const monthBreakdown = monthRes.app_markup_statistics?.breakdown || [];
+      console.log('Month stats response:', monthRes);
       const monthData = getAppData(monthBreakdown, selectedAppId);
       setThisMonth(monthData.commission);
       setThisMonthTxns(monthData.transactions);
@@ -129,6 +133,7 @@ export default function Dashboard({ onLogout }) {
       const lastTo = dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD HH:mm:ss');
       const lastRes = await getCommission(lastFrom, lastTo);
       const lastBreakdown = lastRes.app_markup_statistics?.breakdown || [];
+      console.log('Last month stats response:', lastRes);
       const lastData = getAppData(lastBreakdown, selectedAppId);
       setLastMonth(lastData.commission);
       setLastMonthTxns(lastData.transactions);
