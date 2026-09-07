@@ -5,20 +5,34 @@ const appId = /^\d+$/.test(configuredAppId) ? configuredAppId : '1089'
 const socketUrl = `wss://ws.derivws.com/websockets/v3?app_id=${encodeURIComponent(appId)}`
 
 const request = (socket, payload, requestId) => new Promise((resolve, reject) => {
-  const onMessage = (message) => {
-    const response = JSON.parse(message.toString())
-    if (response.req_id !== requestId) return
+  let settled = false
+  const finish = (callback, value) => {
+    if (settled) return
+    settled = true
+    clearTimeout(timeout)
     socket.off('message', onMessage)
-    if (response.error) reject(new Error(response.error.message || 'Deriv API request failed.'))
-    else resolve(response)
+    socket.off('close', onClose)
+    socket.off('error', onError)
+    callback(value)
   }
+  const onMessage = (message) => {
+    let response
+    try { response = JSON.parse(message.toString()) } catch { return }
+    if (response.req_id !== requestId) return
+    if (response.error) finish(reject, new Error(response.error.message || 'Deriv API request failed.'))
+    else finish(resolve, response)
+  }
+  const onClose = () => finish(reject, new Error('Deriv WebSocket closed before returning a response.'))
+  const onError = (error) => finish(reject, error)
+  const timeout = setTimeout(() => finish(reject, new Error('Deriv API request timed out.')), 15000)
   socket.on('message', onMessage)
+  socket.once('close', onClose)
+  socket.once('error', onError)
 })
 
 const call = async (accessToken, payload) => {
   if (!appId) throw new Error('DERIV_APP_ID is missing on the server.')
   const socket = new WebSocket(socketUrl)
-  const timeout = setTimeout(() => socket.close(), 15000)
   try {
     await new Promise((resolve, reject) => {
       socket.once('open', resolve)
@@ -29,7 +43,6 @@ const call = async (accessToken, payload) => {
     const response = await request(socket, { ...payload, req_id: 2 }, 2)
     return response
   } finally {
-    clearTimeout(timeout)
     socket.close()
   }
 }
