@@ -5,7 +5,7 @@ import { getApplicationList, getMarkupStatistics } from './markupApi.js'
 
 const app = express()
 const port = Number(process.env.PORT || 8787)
-const clientId = process.env.DERIV_APP_ID || process.env.REACT_APP_DERIV_APP_ID
+const clientId = process.env.DERIV_APP_ID
 const getRedirectUri = () => {
   if (process.env.DERIV_REDIRECT_URI) return process.env.DERIV_REDIRECT_URI
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/oauth/callback`
