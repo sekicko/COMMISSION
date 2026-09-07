@@ -8,8 +8,10 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "appwrite": "^22.3.0",
+    "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
     "dayjs": "^1.11.10",
+    "express": "^5.2.1",
     "react": "^18.2.0",
     "react-datepicker": "^9.1.0",
     "react-dom": "^18.2.0",
@@ -20,10 +22,13 @@
     "workbox-expiration": "^7.4.0",
     "workbox-precaching": "^7.4.0",
     "workbox-routing": "^7.4.0",
-    "workbox-strategies": "^7.4.0"
+    "workbox-strategies": "^7.4.0",
+    "ws": "^8.21.3"
   },
   "scripts": {
     "start": "react-scripts start",
+    "server": "node server/index.js",
+    "dev:all": "concurrently \"npm run server\" \"npm start\"",
     "build": "cross-env CI=false DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -34,6 +39,7 @@
       "react-app/jest"
     ]
   },
+  "proxy": "http://localhost:8787",
   "browserslist": {
     "production": [
       ">0.2%",
