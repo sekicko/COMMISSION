@@ -32,7 +32,11 @@ const open = (value) => {
   } catch { return null }
 }
 const getCookie = (request, name) => request.headers.cookie?.split(';').map((part) => part.trim().split('=')).find(([key]) => key === name)?.[1]
-const setCookie = (name, value, maxAge = 3600) => `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}; ${process.env.NODE_ENV === 'production' ? 'Secure; ' : ''}`
+const setCookie = (name, value, maxAge = 3600) => {
+  const base = `${name}=${encodeURIComponent(value)}; HttpOnly; Path=/; Max-Age=${maxAge};`
+  if (process.env.NODE_ENV === 'production') return `${base} SameSite=None; Secure;`
+  return `${base} SameSite=Lax;`
+}
 const error = (response, status, message) => response.status(status).json({ error: message })
 const requireConfig = () => { if (!clientId) throw new Error('DERIV_APP_ID is missing. Add the registered Deriv app ID in Vercel env vars.') }
 const getSession = (request) => open(decodeURIComponent(getCookie(request, cookieName) || ''))
